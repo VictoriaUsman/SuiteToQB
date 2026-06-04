@@ -1,0 +1,39 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+
+# Database
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+
+# AI / OpenAI
+openai==1.57.0
+
+# Document processing
+pymupdf==1.24.14
+pytesseract==0.3.13
+pillow==11.0.0
+openpyxl==3.1.5
+pandas==2.2.3
+
+# QuickBooks
+intuit-oauth==1.2.6
+requests==2.32.3
+
+# Report generation
+reportlab==4.2.5
+xlsxwriter==3.2.0
+
+# Utilities
+python-dotenv==1.0.1
+python-dateutil==2.9.0
+httpx==0.28.1
+pydantic[email]==2.10.3
+pydantic-settings==2.6.1
+aiofiles==24.1.0
