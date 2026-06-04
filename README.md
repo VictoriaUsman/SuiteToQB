@@ -1,4 +1,5 @@
 # AccountingSuite
+<img width="1648" height="877" alt="image" src="https://github.com/user-attachments/assets/8e91bb49-80ce-4035-8a38-f412cc7f847c" />
 
 AI-powered financial document extraction and analysis platform with QuickBooks Advanced integration.
 
