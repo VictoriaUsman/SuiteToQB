@@ -1,11 +1,17 @@
 import json
 import base64
+import logging
 from pathlib import Path
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, RateLimitError, APITimeoutError, APIConnectionError, InternalServerError
 from config import get_settings
+from utils.retry import async_retry
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+# Transient OpenAI errors worth retrying
+_OPENAI_RETRYABLE = (RateLimitError, APITimeoutError, APIConnectionError, InternalServerError)
 
 EXTRACTION_SYSTEM_PROMPT = """You are a financial document analysis expert. Extract structured data from bank statements and financial documents.
 Always return valid JSON matching the requested schema. Be precise with numbers and dates."""
@@ -39,6 +45,14 @@ Document text:
 {text}"""
 
 
+@async_retry(
+    max_attempts=4,
+    base_delay=2.0,
+    max_delay=60.0,
+    exponential_base=2.0,
+    jitter=True,
+    retryable_exceptions=_OPENAI_RETRYABLE,
+)
 async def extract_from_text(raw_text: str) -> dict:
     response = await client.chat.completions.create(
         model=settings.openai_model,
@@ -48,10 +62,19 @@ async def extract_from_text(raw_text: str) -> dict:
         ],
         response_format={"type": "json_object"},
         temperature=0.1,
+        timeout=120,
     )
     return json.loads(response.choices[0].message.content)
 
 
+@async_retry(
+    max_attempts=4,
+    base_delay=2.0,
+    max_delay=60.0,
+    exponential_base=2.0,
+    jitter=True,
+    retryable_exceptions=_OPENAI_RETRYABLE,
+)
 async def extract_from_image_file(file_path: str) -> dict:
     with open(file_path, "rb") as f:
         image_data = base64.b64encode(f.read()).decode("utf-8")
@@ -78,10 +101,19 @@ async def extract_from_image_file(file_path: str) -> dict:
         ],
         response_format={"type": "json_object"},
         temperature=0.1,
+        timeout=120,
     )
     return json.loads(response.choices[0].message.content)
 
 
+@async_retry(
+    max_attempts=3,
+    base_delay=1.0,
+    max_delay=30.0,
+    exponential_base=2.0,
+    jitter=True,
+    retryable_exceptions=_OPENAI_RETRYABLE,
+)
 async def answer_financial_question(question: str, context_transactions: list[dict]) -> str:
     context_json = json.dumps(context_transactions[:100], indent=2)
     response = await client.chat.completions.create(
@@ -97,5 +129,6 @@ async def answer_financial_question(question: str, context_transactions: list[di
             },
         ],
         temperature=0.2,
+        timeout=60,
     )
     return response.choices[0].message.content

@@ -8,7 +8,24 @@ import './index.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30000 },
+    queries: {
+      staleTime: 30_000,
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx client errors
+        const status = error?.response?.status
+        if (status && status >= 400 && status < 500) return false
+        return failureCount < 3
+      },
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
+    },
+    mutations: {
+      retry: (failureCount, error) => {
+        const status = error?.response?.status
+        if (status && status >= 400 && status < 500) return false
+        return failureCount < 2
+      },
+      retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 30_000),
+    },
   },
 })
 
