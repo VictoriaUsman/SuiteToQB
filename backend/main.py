@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 from contextlib import asynccontextmanager
 from pathlib import Path
 import os
@@ -9,8 +10,6 @@ from config import get_settings
 from routers import auth, documents, transactions, quickbooks, reports, search
 
 settings = get_settings()
-_key = settings.openai_api_key
-print(f"[STARTUP] OPENAI_API_KEY loaded: {_key[:12]}...{_key[-6:]} (len={len(_key)})")
 
 
 @asynccontextmanager
@@ -48,10 +47,19 @@ async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
-# Serve built frontend in production (Railway / Docker)
+# SPA fallback — serve index.html for any non-API route
 _frontend_dist = Path(__file__).parent / "frontend_dist"
+_index_html = _frontend_dist / "index.html"
+
 if _frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(_frontend_dist), html=True), name="frontend")
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=str(_frontend_dist / "assets")), name="assets")
+
+    @app.exception_handler(404)
+    async def spa_fallback(request: Request, exc):
+        if request.url.path.startswith("/api"):
+            return JSONResponse({"detail": str(exc.detail)}, status_code=404)
+        return FileResponse(str(_index_html))
 
 
 if __name__ == "__main__":
