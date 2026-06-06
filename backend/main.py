@@ -19,26 +19,32 @@ async def lifespan(app: FastAPI):
     from sqlalchemy import select, text
     from database import AsyncSessionLocal
     from utils.security import hash_password
+    from models import User
+
     async with AsyncSessionLocal() as db:
-        result = await db.execute(text("SELECT COUNT(*) FROM users"))
-        if result.scalar() == 0:
+        count = (await db.execute(text("SELECT COUNT(*) FROM users"))).scalar()
+        if count == 0:
             from seed import seed
             await seed()
-    # Always re-hash demo password on startup so any stale/incompatible hash is replaced
-    from models import User
-    from utils.security import verify_password
-    async with AsyncSessionLocal() as db:
+
+        # Always upsert demo account so it works regardless of DB state
         result = await db.execute(select(User).where(User.email == "demo@accountingsuite.com"))
         demo = result.scalar_one_or_none()
         if demo:
-            new_hash = hash_password("demo1234")
-            self_check = verify_password("demo1234", new_hash)
-            print(f"[STARTUP] bcrypt self-check={self_check} hash_len={len(new_hash)} hash_prefix={new_hash[:7]}", flush=True)
-            demo.hashed_password = new_hash
+            demo.hashed_password = hash_password("demo1234")
             await db.commit()
-            print("[STARTUP] Demo password committed to DB", flush=True)
+            print("[STARTUP] Demo password refreshed", flush=True)
         else:
-            print("[STARTUP] WARNING: demo user not found in DB", flush=True)
+            demo = User(
+                email="demo@accountingsuite.com",
+                full_name="Demo User",
+                hashed_password=hash_password("demo1234"),
+                is_active=True,
+                is_admin=True,
+            )
+            db.add(demo)
+            await db.commit()
+            print("[STARTUP] Demo user created", flush=True)
     yield
 
 
