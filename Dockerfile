@@ -29,4 +29,4 @@ ENV UPLOAD_DIR=/data/uploads
 ENV DATABASE_URL=sqlite+aiosqlite:////data/accountingsuite.db
 
 EXPOSE 8000
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "python main.py"]

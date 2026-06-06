@@ -56,4 +56,5 @@ if _frontend_dist.exists():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host=settings.app_host, port=settings.app_port, reload=True)
+    port = int(os.environ.get("PORT", settings.app_port))
+    uvicorn.run("main:app", host=settings.app_host, port=port, reload=False)
