@@ -96,7 +96,7 @@ export default function Login() {
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Password</label>
               <input className="input" type="password" placeholder="••••••••"
                 value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required minLength={8} />
+                required minLength={mode === 'register' ? 8 : undefined} />
             </div>
             {error && (
               <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
