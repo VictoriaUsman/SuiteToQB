@@ -9,10 +9,12 @@ export default function Login() {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ email: '', password: '', full_name: '' })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
     try {
       if (mode === 'login') {
         const { data } = await authApi.login(form.email, form.password)
@@ -25,7 +27,7 @@ export default function Login() {
         setMode('login')
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Something went wrong')
+      setError(err.response?.data?.detail || 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -96,6 +98,12 @@ export default function Login() {
                 value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required minLength={8} />
             </div>
+            {error && (
+              <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <span className="mt-0.5 shrink-0">⚠</span>
+                <span>{error}</span>
+              </div>
+            )}
             <button type="submit" className="btn-primary w-full py-2.5 text-sm" disabled={loading}>
               {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
@@ -104,7 +112,7 @@ export default function Login() {
           <p className="text-sm text-center text-gray-400 mt-5">
             {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
             <button className="text-indigo-600 font-semibold hover:underline"
-              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}>
               {mode === 'login' ? 'Sign up' : 'Sign in'}
             </button>
           </p>

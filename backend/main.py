@@ -18,11 +18,20 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.upload_dir, exist_ok=True)
     from sqlalchemy import select, text
     from database import AsyncSessionLocal
+    from utils.security import hash_password, verify_password
     async with AsyncSessionLocal() as db:
         result = await db.execute(text("SELECT COUNT(*) FROM users"))
         if result.scalar() == 0:
             from seed import seed
             await seed()
+    # Ensure demo password is always valid (guards against bcrypt version issues)
+    from models import User
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == "demo@accountingsuite.com"))
+        demo = result.scalar_one_or_none()
+        if demo and not verify_password("demo1234", demo.hashed_password):
+            demo.hashed_password = hash_password("demo1234")
+            await db.commit()
     yield
 
 
