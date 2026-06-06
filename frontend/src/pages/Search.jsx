@@ -34,7 +34,7 @@ export default function Search() {
 
   const askAi = async (e) => {
     e.preventDefault()
-    if (!aiQuestion.trim()) return
+    if (aiQuestion.trim().length < 3) return
     setAiLoading(true)
     setAiAnswer(null)
     try {
@@ -133,7 +133,7 @@ export default function Search() {
             value={aiQuestion}
             onChange={(e) => setAiQuestion(e.target.value)}
           />
-          <button type="submit" className="btn-primary px-5 whitespace-nowrap" disabled={aiLoading}>
+          <button type="submit" className="btn-primary px-5 whitespace-nowrap" disabled={aiLoading || aiQuestion.trim().length < 3}>
             {aiLoading ? <Loader size={15} className="animate-spin" /> : 'Ask'}
           </button>
         </form>
