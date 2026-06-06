@@ -26,12 +26,19 @@ async def lifespan(app: FastAPI):
             await seed()
     # Always re-hash demo password on startup so any stale/incompatible hash is replaced
     from models import User
+    from utils.security import verify_password
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == "demo@accountingsuite.com"))
         demo = result.scalar_one_or_none()
         if demo:
-            demo.hashed_password = hash_password("demo1234")
+            new_hash = hash_password("demo1234")
+            self_check = verify_password("demo1234", new_hash)
+            print(f"[STARTUP] bcrypt self-check={self_check} hash_len={len(new_hash)} hash_prefix={new_hash[:7]}", flush=True)
+            demo.hashed_password = new_hash
             await db.commit()
+            print("[STARTUP] Demo password committed to DB", flush=True)
+        else:
+            print("[STARTUP] WARNING: demo user not found in DB", flush=True)
     yield
 
 
@@ -60,7 +67,13 @@ app.include_router(search.router)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "1.0.0"}
+    import bcrypt as _bcrypt
+    try:
+        _h = _bcrypt.hashpw(b"test", _bcrypt.gensalt())
+        _ok = _bcrypt.checkpw(b"test", _h)
+    except Exception as e:
+        _ok = f"ERROR: {e}"
+    return {"status": "ok", "version": "1.0.0", "bcrypt_ok": _ok}
 
 
 # SPA fallback — serve index.html for any non-API route

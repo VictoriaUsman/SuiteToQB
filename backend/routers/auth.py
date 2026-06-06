@@ -46,6 +46,11 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
+    if user:
+        ok = verify_password(form.password, user.hashed_password)
+        print(f"[LOGIN] email={form.username} found=True verify={ok} hash_prefix={user.hashed_password[:7]}", flush=True)
+    else:
+        print(f"[LOGIN] email={form.username} found=False", flush=True)
     if not user or not verify_password(form.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     token = create_access_token({"sub": str(user.id)})
