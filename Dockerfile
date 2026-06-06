@@ -4,7 +4,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build
+RUN chmod +x node_modules/.bin/* && npm run build
 
 # Stage 2: backend + combined app
 FROM python:3.12-slim
