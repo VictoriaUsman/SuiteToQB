@@ -22,12 +22,7 @@ async def lifespan(app: FastAPI):
     from models import User
 
     async with AsyncSessionLocal() as db:
-        count = (await db.execute(text("SELECT COUNT(*) FROM users"))).scalar()
-        if count == 0:
-            from seed import seed
-            await seed()
-
-        # Always upsert demo account so it works regardless of DB state
+        # Always upsert demo account so credentials always work
         result = await db.execute(select(User).where(User.email == "demo@accountingsuite.com"))
         demo = result.scalar_one_or_none()
         if demo:
@@ -44,7 +39,17 @@ async def lifespan(app: FastAPI):
             )
             db.add(demo)
             await db.commit()
+            await db.refresh(demo)
             print("[STARTUP] Demo user created", flush=True)
+
+        # Seed sample data if demo account has none
+        doc_count = (await db.execute(
+            text("SELECT COUNT(*) FROM documents WHERE owner_id = :uid").bindparams(uid=demo.id)
+        )).scalar()
+        if doc_count == 0:
+            print("[STARTUP] No documents for demo user — seeding sample data", flush=True)
+            from seed import seed
+            await seed()
     yield
 
 
