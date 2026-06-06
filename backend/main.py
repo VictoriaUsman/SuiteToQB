@@ -16,6 +16,13 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     await init_db()
     os.makedirs(settings.upload_dir, exist_ok=True)
+    from sqlalchemy import select, text
+    from database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(text("SELECT COUNT(*) FROM users"))
+        if result.scalar() == 0:
+            from seed import seed
+            await seed()
     yield
 
 
