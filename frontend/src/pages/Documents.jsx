@@ -164,9 +164,17 @@ export default function Documents() {
                     {doc.total_withdrawals != null ? `$${doc.total_withdrawals.toLocaleString()}` : '—'}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`badge ${statusStyles[doc.status] || 'bg-gray-100 text-gray-500'}`}>
+                    <span
+                      className={`badge ${statusStyles[doc.status] || 'bg-gray-100 text-gray-500'}`}
+                      title={doc.status === 'error' && doc.error_message ? doc.error_message : undefined}
+                    >
                       {doc.status}
                     </span>
+                    {doc.status === 'error' && doc.error_message && (
+                      <p className="text-xs text-red-500 mt-1 max-w-[220px] truncate" title={doc.error_message}>
+                        {doc.error_message}
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">

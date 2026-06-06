@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from pydantic import BaseModel
+from typing import List
 from database import get_db
 from models import User, Transaction, Document
 from utils.security import get_current_user
@@ -44,6 +45,7 @@ async def list_transactions(
     ai_category: str | None = None,
     is_reviewed: bool | None = None,
     qb_synced: bool | None = None,
+    max_confidence: float | None = None,
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
@@ -64,8 +66,10 @@ async def list_transactions(
         query = query.where(Transaction.is_reviewed == is_reviewed)
     if qb_synced is not None:
         query = query.where(Transaction.qb_synced == qb_synced)
+    if max_confidence is not None:
+        query = query.where(Transaction.ai_confidence <= max_confidence)
 
-    query = query.order_by(Transaction.date.desc()).offset(skip).limit(limit)
+    query = query.order_by(Transaction.ai_confidence.asc().nulls_last(), Transaction.date.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -103,7 +107,50 @@ async def transaction_stats(db: AsyncSession = Depends(get_db), current_user: Us
     )
     unsynced = unsynced_result.scalar()
 
-    return {"total": total, "by_type": by_type, "by_category": by_category, "unsynced_count": unsynced}
+    needs_review_result = await db.execute(
+        select(func.count())
+        .select_from(Transaction)
+        .join(Document)
+        .where(
+            Document.owner_id == current_user.id,
+            Transaction.is_reviewed == False,
+            Transaction.ai_confidence < 0.75,
+        )
+    )
+    needs_review = needs_review_result.scalar()
+
+    return {
+        "total": total,
+        "by_type": by_type,
+        "by_category": by_category,
+        "unsynced_count": unsynced,
+        "needs_review": needs_review,
+    }
+
+
+class BulkReviewRequest(BaseModel):
+    transaction_ids: List[int]
+
+
+@router.post("/bulk-review")
+async def bulk_review(
+    payload: BulkReviewRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Transaction)
+        .join(Document)
+        .where(
+            Transaction.id.in_(payload.transaction_ids),
+            Document.owner_id == current_user.id,
+        )
+    )
+    txns = result.scalars().all()
+    for txn in txns:
+        txn.is_reviewed = True
+    await db.commit()
+    return {"approved": len(txns)}
 
 
 @router.patch("/{txn_id}", response_model=TransactionOut)

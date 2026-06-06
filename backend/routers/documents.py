@@ -34,6 +34,7 @@ class DocumentOut(BaseModel):
     total_withdrawals: float | None
     ending_balance: float | None
     ai_summary: str | None
+    error_message: str | None
     transaction_count: int = 0
     created_at: datetime
 

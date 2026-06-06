@@ -50,6 +50,7 @@ export const transactionsApi = {
   list: (params) => api.get('/transactions/', { params }),
   stats: () => api.get('/transactions/stats'),
   update: (id, data) => api.patch(`/transactions/${id}`, data),
+  bulkReview: (ids) => api.post('/transactions/bulk-review', { transaction_ids: ids }),
 }
 
 export const quickbooksApi = {

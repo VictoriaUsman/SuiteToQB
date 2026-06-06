@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
+
+ENV_FILE = Path(__file__).parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -27,7 +30,7 @@ class Settings(BaseSettings):
     tesseract_cmd: str = "tesseract"
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_FILE)
         extra = "ignore"
 
 

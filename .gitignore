@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Uploads (user data — never commit)
+backend/uploads/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node
+node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
